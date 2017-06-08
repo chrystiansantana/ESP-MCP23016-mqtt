@@ -1,22 +1,30 @@
-#include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <PubSubClient.h>
 
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>
+
+#include <Wire.h>
+
+#include <ArduinoOTA.h>
+//#include <ESP8266mDNS.h>
+//#include <WiFiUdp.h>
+
+#include <PubSubClient.h>
 #define host_name "ESP8266"
 #define PUBLICAR "ESP8266/sinais"
 
+byte MCP_leitura = 0x20; // Endereço do MCP23017 que lê a saida dos reles ( A2=0, A1=0, A0=0)
+byte MCP_controle = 0x21; // ,,     ,,    ,,    que dispara os reles    ( A2=0, A1=0, A0=1)
+#define IODIRA  0x00 // Registrador IO PORTA
+#define IODIRB  0x01 // Registrador IO PORTB
+#define IOA   0x12 // IOs A
+#define IOB   0x13 // IOs B
+byte leituras=0;
 long unsigned int tempo;
 char menssagem[50];
 
-const char* ssid = "SSID";
-const char* password = "69665245";
-const char* mqtt_server = "192.168.1.14";
-IPAddress ip(192, 168, 1, 80);
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 255, 0);
-IPAddress dns(192, 168, 1, 1);
+const char* mqtt_server = "192.168.1.205";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -44,34 +52,32 @@ void OTA() {
   });
   ArduinoOTA.begin();
 }
+///############   Setup   ############# 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(115200); // inicia porta serial para debug
   Serial.println("\n\r**(Setup)**\n\r");
 
-  conectar_wifi();
-
-  client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
-
-  OTA(); // atualizar via rede
-  Serial.println("\n\r**(Setup)**\nPronto");
-}
-///#############   WiFi   ##############
-void conectar_wifi() {
-  WiFi.mode(WIFI_STA);
-  WiFi.hostname(host_name);
-  WiFi.config(ip, gateway, subnet, dns);
-  WiFi.begin(ssid, password);
-
-  Serial.println("Conectando WiFi");
-
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.write(".");
+  WiFiManager wifimanager; // Carrega informaçoes wifi da eeprom
+  wifimanager.setTimeout(180);
+  if(!wifimanager.autoConnect("ESP_Wifi_conf", "espmcp23016")) {
+    Serial.println("Falha ao conectar, reset...");// Resetar o ESP caso nao consiga conectar apos o timeout
+    delay(3000);
+    ESP.reset();
     delay(1000);
   }
-  Serial.println("\n\rWiFi Conectado");
-  Serial.println("Hostname: " + WiFi.hostname());
-  Serial.println("IP: " + WiFi.localIP());
+  
+  client.setServer(mqtt_server, 1883); // Configura conexão com oservidor mqtt
+  client.setCallback(callback);
+
+  OTA(); // Abilita atualização do codigo via rede
+
+  Wire.begin(); // ativa canal i2c
+  Wire.beginTransmission(MCP_controle); // inicia transmissao com mcp de controle
+  Wire.write(IODIRA); // IODIRA registrador A
+  Wire.write(0x00); // seta todas as IOs A para OUTPUT
+  Wire.endTransmission(); // finaliza transmissao
+    
+  Serial.println("\n\r**(Setup Concluido)**\n");
 }
 ///#############   MQTT   ##############
 void callback(char* topic, byte*payload, unsigned int length) {
@@ -108,16 +114,20 @@ void reconnect() {
 ///#############   ####   ##############
 void loop() {
   tempo = millis();
-  //ArduinoOTA.handle();
+  ArduinoOTA.handle();
   if (!client.connected()) {
     reconnect();
   }
   //snprintf (menssagem, 75, "hello world #%1d", tempo);
   //client.publish(PUBLICAR, menssagem);
-  delay(1500);
-
-
-
+  Wire.beginTransmission(MCP_leitura); // Trasmite para MCP de leitura
+  Wire.write(IOA); // Informa IOs A
+  Wire.endTransmission();
+  Wire.requestFrom(MCP_leitura, 1);
+  leituras=Wire.read();
+  if(leituras>0){
+    Serial.println(leituras, BIN);
+  }
   client.loop();
 }
 
