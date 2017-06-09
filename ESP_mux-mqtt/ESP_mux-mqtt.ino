@@ -14,12 +14,15 @@
 #define host_name "ESP8266"
 #define PUBLICAR "ESP8266/sinais"
 
+#define SDA 4 // talves no GPIO2?
+#define SCL 5 // talves colocar no GPIO14?
+
 byte MCP_leitura = 0x20; // Endereço do MCP23017 que lê a saida dos reles ( A2=0, A1=0, A0=0)
 byte MCP_controle = 0x21; // ,,     ,,    ,,    que dispara os reles    ( A2=0, A1=0, A0=1)
-#define IODIRA  0x00 // Registrador IO PORTA
-#define IODIRB  0x01 // Registrador IO PORTB
-#define IOA   0x12 // IOs A
-#define IOB   0x13 // IOs B
+#define IODIRA 0x00 // Registrador IO PORTA
+#define IODIRB 0x01 // Registrador IO PORTB
+#define IOA 0x12 // IOs A
+#define IOB 0x13 // IOs B
 byte leituras=0;
 long unsigned int tempo;
 char menssagem[50];
@@ -71,7 +74,7 @@ void setup() {
 
   OTA(); // Abilita atualização do codigo via rede
 
-  Wire.begin(5,4); // ativa canal i2c
+  Wire.begin(SDA,SCL); // ativa canal i2c
   Wire.beginTransmission(MCP_controle); // inicia transmissao com mcp de controle
   Wire.write(IODIRA); // IODIRA registrador A
   Wire.write(0x00); // seta todas as IOs A para OUTPUT
@@ -129,7 +132,7 @@ void loop() {
   if(leituras>0){
     Serial.println(leituras, BIN);
   }
-  delay(500);
+  delay(1000);
   client.loop();
 }
 
