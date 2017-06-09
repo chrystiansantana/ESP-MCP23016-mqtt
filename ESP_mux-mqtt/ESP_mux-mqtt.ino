@@ -66,12 +66,12 @@ void setup() {
     delay(1000);
   }
   
-  client.setServer(mqtt_server, 1883); // Configura conexão com oservidor mqtt
-  client.setCallback(callback);
+//  client.setServer(mqtt_server, 1883); // Configura conexão com oservidor mqtt
+//  client.setCallback(callback);
 
   OTA(); // Abilita atualização do codigo via rede
 
-  Wire.begin(); // ativa canal i2c
+  Wire.begin(5,4); // ativa canal i2c
   Wire.beginTransmission(MCP_controle); // inicia transmissao com mcp de controle
   Wire.write(IODIRA); // IODIRA registrador A
   Wire.write(0x00); // seta todas as IOs A para OUTPUT
@@ -115,12 +115,13 @@ void reconnect() {
 void loop() {
   tempo = millis();
   ArduinoOTA.handle();
-  if (!client.connected()) {
+/*  if (!client.connected()) {
     reconnect();
   }
-  //snprintf (menssagem, 75, "hello world #%1d", tempo);
+*/  //snprintf (menssagem, 75, "hello world #%1d", tempo);
   //client.publish(PUBLICAR, menssagem);
   Wire.beginTransmission(MCP_leitura); // Trasmite para MCP de leitura
+  Wire.write(0x00);
   Wire.write(IOA); // Informa IOs A
   Wire.endTransmission();
   Wire.requestFrom(MCP_leitura, 1);
@@ -128,6 +129,7 @@ void loop() {
   if(leituras>0){
     Serial.println(leituras, BIN);
   }
+  delay(500);
   client.loop();
 }
 
