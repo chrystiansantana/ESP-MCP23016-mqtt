@@ -14,8 +14,8 @@
 #define host_name "ESP8266"
 #define PUBLICAR "ESP8266/sinais"
 
-#define SDA 4 // talves no GPIO2?
-#define SCL 5 // talves colocar no GPIO14?
+#define SDA 13 // talves no GPIO2?
+#define SCL 12 // talves colocar no GPIO14?
 
 byte MCP_leitura = 0x20; // Endereço do MCP23017 que lê a saida dos reles ( A2=0, A1=0, A0=0)
 byte MCP_controle = 0x21; // ,,     ,,    ,,    que dispara os reles    ( A2=0, A1=0, A0=1)
@@ -74,11 +74,11 @@ void setup() {
 
   OTA(); // Abilita atualização do codigo via rede
 
-  Wire.begin(SDA,SCL); // ativa canal i2c
-  Wire.beginTransmission(MCP_controle); // inicia transmissao com mcp de controle
+  Wire.begin(5,4); // ativa canal i2c
+  /*Wire.beginTransmission(MCP_controle); // inicia transmissao com mcp de controle
   Wire.write(IODIRA); // IODIRA registrador A
   Wire.write(0x00); // seta todas as IOs A para OUTPUT
-  Wire.endTransmission(); // finaliza transmissao
+  Wire.endTransmission(); // finaliza transmissao*/
     
   Serial.println("\n\r**(Setup Concluido)**\n");
 }
@@ -123,16 +123,46 @@ void loop() {
   }
 */  //snprintf (menssagem, 75, "hello world #%1d", tempo);
   //client.publish(PUBLICAR, menssagem);
-  Wire.beginTransmission(MCP_leitura); // Trasmite para MCP de leitura
+  Wire.beginTransmission(0x20); // Trasmite para MCP de leitura
   Wire.write(0x00);
-  Wire.write(IOA); // Informa IOs A
+  Wire.write(0x00);
   Wire.endTransmission();
-  Wire.requestFrom(MCP_leitura, 1);
+  
+  Wire.beginTransmission(0x20);
+  Wire.write(0x12);
+  Wire.write(11000000);
+  Wire.endTransmission();
+  Serial.println(11000000);
+  delay(3000);
+  
+  Wire.beginTransmission(0x20);
+  Wire.write(0x12);
+  Wire.write(1000000);
+  Wire.endTransmission();
+  delay(2000);
+  Serial.println(1000000);
+  
+  Wire.beginTransmission(0x20);
+  Wire.write(0x12);
+  Wire.write(01000000);
+  Wire.endTransmission();
+  delay(1000);
+  Serial.println(01000000);
+  
+  Wire.beginTransmission(0x20);
+  Wire.write(0x12);
+  Wire.write(00000000);
+  Wire.endTransmission();
+  delay(1000);
+  Serial.println(00000000);
+
+  /*
+  Wire.requestFrom(0x20, 1);
   leituras=Wire.read();
   if(leituras>0){
     Serial.println(leituras, BIN);
   }
-  delay(1000);
+  delay(200);*/
   client.loop();
 }
 
